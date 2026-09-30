@@ -261,8 +261,8 @@ function VitalsCapture() {
     <div className="max-w-6xl mx-auto space-y-5 slide-in">
 
       {/* ── TOP SECTION: Patient Token Selection ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <form onSubmit={handleSearch} className="flex space-x-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-3">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -276,7 +276,7 @@ function VitalsCapture() {
           </div>
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all active:scale-95"
+            className="px-6 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all active:scale-95 text-center"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
           >
             Find Token
@@ -285,7 +285,7 @@ function VitalsCapture() {
 
         {/* Quick select active tokens */}
         {todayQueue.length > 0 && (
-          <div className="flex items-center space-x-2 overflow-x-auto pt-1">
+          <div className="flex items-center space-x-2 overflow-x-auto pt-1 no-scrollbar py-0.5">
             <span className="text-xs text-gray-400 font-medium whitespace-nowrap">Active Queue:</span>
             {todayQueue.map(t => (
               <button
@@ -347,7 +347,7 @@ function VitalsCapture() {
                   Token #{patientInfo.token_number}
                 </span>
               </div>
-              <div className="bg-white p-5 grid grid-cols-3 gap-4">
+              <div className="bg-white p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-gray-400 font-medium">Patient</p>
                   <p className="text-sm font-bold text-gray-800 mt-0.5">{patientInfo.patient_name}</p>
@@ -356,7 +356,7 @@ function VitalsCapture() {
                   <p className="text-xs text-gray-400 font-medium">UHID</p>
                   <p className="text-sm font-mono font-bold text-indigo-600 mt-0.5">{patientInfo.uhid}</p>
                 </div>
-                <div>
+                <div className="col-span-2 sm:col-span-1">
                   <p className="text-xs text-gray-400 font-medium">Doctor</p>
                   <p className="text-sm font-medium text-gray-700 mt-0.5">{patientInfo.doctor_name || 'Unassigned'}</p>
                 </div>
@@ -365,7 +365,7 @@ function VitalsCapture() {
 
             {/* Camera & Upload Component with Auto-Extraction */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Camera size={16} className="text-indigo-600" />
                   <h3 className="font-bold text-gray-900">Vitals Slip Capture</h3>
@@ -375,7 +375,7 @@ function VitalsCapture() {
                 </span>
               </div>
 
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4">
                 {/* When photo is taken or selected, handleCapture triggers auto-fill immediately */}
                 <CameraCapture onCapture={handleCapture} />
 
@@ -409,7 +409,7 @@ function VitalsCapture() {
 
           {/* ── RIGHT COLUMN: Auto-Filled Vitals Form ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Heart size={16} className="text-rose-500" />
                 <h3 className="font-bold text-gray-900">Patient Vitals Form</h3>
@@ -421,9 +421,9 @@ function VitalsCapture() {
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4">
               {/* Blood Pressure */}
-              <div className="bg-rose-50/60 rounded-xl p-4 border border-rose-100">
+              <div className="bg-rose-50/60 rounded-xl p-3.5 sm:p-4 border border-rose-100">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">
                     Blood Pressure (mmHg)
@@ -434,7 +434,7 @@ function VitalsCapture() {
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                   <VitalInput
                     label="Systolic"
                     icon={Heart}
@@ -455,7 +455,7 @@ function VitalsCapture() {
               </div>
 
               {/* Grid of Other Vitals */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <VitalInput
                   label="Pulse Rate"
                   icon={Activity}

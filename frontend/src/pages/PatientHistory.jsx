@@ -49,8 +49,8 @@ function PatientHistory() {
     <div className="space-y-5 slide-in">
 
       {/* Search Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <form onSubmit={handleSearch} className="flex space-x-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -61,7 +61,7 @@ function PatientHistory() {
             />
           </div>
           <button type="submit" disabled={searching}
-            className="px-6 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all active:scale-95 disabled:opacity-70"
+            className="px-6 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all active:scale-95 disabled:opacity-70 text-center"
             style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}>
             {searching ? 'Searching...' : 'Search'}
           </button>
@@ -115,16 +115,18 @@ function PatientHistory() {
             <>
               {/* Profile Card */}
               <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="px-6 py-4 flex items-center space-x-4"
+                <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:space-x-4"
                   style={{background:'linear-gradient(135deg,#1e1b4b,#312e81)'}}>
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <User size={22} className="text-white" />
+                  <div className="flex items-center space-x-3 w-full sm:w-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <User size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-white font-bold text-base sm:text-lg">{selectedPatient.name}</h2>
+                      <p className="text-indigo-300 text-xs sm:text-sm">{selectedPatient.uhid} &bull; {selectedPatient.age} yrs &bull; {selectedPatient.gender === 'M' ? 'Male' : selectedPatient.gender === 'F' ? 'Female' : 'Other'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-white font-bold text-lg">{selectedPatient.name}</h2>
-                    <p className="text-indigo-300 text-sm">{selectedPatient.uhid} &bull; {selectedPatient.age} yrs &bull; {selectedPatient.gender === 'M' ? 'Male' : selectedPatient.gender === 'F' ? 'Female' : 'Other'}</p>
-                  </div>
-                  <div className="ml-auto text-right">
+                  <div className="sm:ml-auto text-left sm:text-right w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
                     <p className="text-indigo-300 text-xs">Phone</p>
                     <p className="text-white font-semibold text-sm">{selectedPatient.phone || '—'}</p>
                   </div>
@@ -132,10 +134,10 @@ function PatientHistory() {
               </div>
 
               {/* API Integration Info */}
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center space-x-3">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center space-x-3 overflow-hidden">
                 <TrendingUp size={14} className="text-indigo-500 flex-shrink-0" />
-                <p className="text-xs text-indigo-700 font-medium">
-                  Hospital GET API: <code className="bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-800">
+                <p className="text-xs text-indigo-700 font-medium truncate">
+                  Hospital GET API: <code className="bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-800 break-all">
                     GET /api/patients/{selectedPatient.uhid}/vitals
                   </code>
                 </p>
@@ -184,7 +186,7 @@ function PatientHistory() {
                               </span>
                             )}
                           </div>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {v.bp_systolic && (
                               <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
                                 <p className="text-xs text-red-400 font-medium">Blood Pressure</p>

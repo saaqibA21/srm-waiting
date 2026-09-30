@@ -10,18 +10,18 @@ import {
 } from 'lucide-react';
 
 const StatCard = ({ label, value, icon: Icon, gradient, sub }) => (
-  <div className="rounded-2xl p-5 text-white relative overflow-hidden shadow-lg card-hover"
+  <div className="rounded-2xl p-3.5 sm:p-5 text-white relative overflow-hidden shadow-lg card-hover"
     style={{ background: gradient }}>
     <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full"
       style={{ background: 'radial-gradient(circle,white,transparent)', transform: 'translate(30%,-30%)' }} />
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-white/70 text-xs font-medium uppercase tracking-wider">{label}</p>
-        <p className="text-4xl font-black mt-1 tabular-nums">{value ?? '—'}</p>
-        {sub && <p className="text-white/60 text-xs mt-1">{sub}</p>}
+        <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wider">{label}</p>
+        <p className="text-2xl sm:text-4xl font-black mt-1 tabular-nums">{value ?? '—'}</p>
+        {sub && <p className="text-white/60 text-[10px] sm:text-xs mt-0.5 sm:mt-1 truncate max-w-[90px] sm:max-w-none">{sub}</p>}
       </div>
-      <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-        <Icon size={20} />
+      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+        <Icon size={16} className="sm:w-5 sm:h-5" />
       </div>
     </div>
   </div>
@@ -220,24 +220,24 @@ function QueueDashboard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {/* Doctor Shift Patients Button */}
           <button
             onClick={() => setShowShiftModal(true)}
             type="button"
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100
-              border border-indigo-200 transition-all active:scale-95 flex items-center space-x-2 shadow-sm"
+            className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-xl font-bold text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100
+              border border-indigo-200 transition-all active:scale-95 flex items-center justify-center space-x-1.5 shadow-sm"
           >
-            <ArrowRightLeft size={15} />
-            <span>Shift Doctor's Patients (Midway Exit)</span>
+            <ArrowRightLeft size={14} />
+            <span className="truncate">Shift Patients</span>
           </button>
 
           {/* Call Next Button */}
           <button
             onClick={handleNext}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-sm transition-all active:scale-95
-              flex items-center space-x-2 disabled:opacity-60"
+            className="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-sm transition-all active:scale-95
+              flex items-center justify-center space-x-1.5 disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
           >
             {loading ? (
@@ -245,13 +245,13 @@ function QueueDashboard() {
             ) : (
               <Zap size={14} />
             )}
-            <span>Call Next Patient</span>
+            <span>Call Next</span>
           </button>
         </div>
       </div>
 
       {/* ── HERO: Token Display + Stats ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-5">
 
         {/* Big Now Serving Token */}
         <div
@@ -262,14 +262,14 @@ function QueueDashboard() {
             className="absolute inset-0 opacity-20"
             style={{ backgroundImage: 'radial-gradient(circle at 70% 20%,#818cf8,transparent 60%)' }}
           />
-          <div className="relative p-8 text-center">
-            <p className="text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-2">Now Serving</p>
-            <div className="text-9xl font-black text-white token-glow tabular-nums leading-none">
+          <div className="relative p-6 sm:p-8 text-center">
+            <p className="text-indigo-300 text-[11px] sm:text-xs font-semibold uppercase tracking-widest mb-1 sm:mb-2">Now Serving</p>
+            <div className="text-7xl sm:text-8xl md:text-9xl font-black text-white token-glow tabular-nums leading-none">
               {displayToken ? displayToken.token_number : '--'}
             </div>
             {displayToken && (
-              <div className="mt-4 space-y-1">
-                <p className="text-white font-semibold text-lg">{displayToken.patient_name}</p>
+              <div className="mt-3 sm:mt-4 space-y-1">
+                <p className="text-white font-semibold text-base sm:text-lg">{displayToken.patient_name}</p>
                 <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs mt-1">
                   <Stethoscope size={12} />
                   <span>{displayToken.doctor_name || 'Unassigned'}</span>
@@ -280,7 +280,7 @@ function QueueDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+        <div className="lg:col-span-2 grid grid-cols-2 gap-2.5 sm:gap-4">
           <StatCard
             label="Total Today"
             value={stats.total_today ?? stats.total}
@@ -469,17 +469,17 @@ function QueueDashboard() {
 
       {/* ── MODAL: DOCTOR LEAVING MIDWAY / SHIFT PATIENTS ── */}
       {showShiftModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-scaleUp">
             
             {/* Modal Header */}
             <div
-              className="p-6 text-white relative"
+              className="p-4 sm:p-6 text-white relative flex-shrink-0"
               style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}
             >
               <button
                 onClick={() => setShowShiftModal(false)}
-                className="absolute top-5 right-5 text-white/70 hover:text-white w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+                className="absolute top-4 right-4 sm:top-5 sm:right-5 text-white/70 hover:text-white w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
               >
                 <X size={16} />
               </button>
@@ -488,14 +488,14 @@ function QueueDashboard() {
                   <UserX size={20} className="text-amber-300" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Doctor Leaving Midway</h3>
+                  <h3 className="text-base sm:text-lg font-bold">Doctor Leaving Midway</h3>
                   <p className="text-indigo-200 text-xs mt-0.5">Shift pending patients to another doctor</p>
                 </div>
               </div>
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleTransferSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleTransferSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
               
               {/* Step 1: Departing Doctor */}
               <div>

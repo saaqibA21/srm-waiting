@@ -76,14 +76,14 @@ function TokenDesk() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
         {/* ── LEFT: Form ── */}
-        <div className="lg:col-span-3 space-y-5">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center space-x-3 mb-6">
+        <div className="lg:col-span-3 space-y-4 sm:space-y-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div className="flex items-center space-x-3 mb-5 sm:mb-6">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-md">
                 <Ticket size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Generate Token</h2>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Generate Token</h2>
                 <p className="text-xs text-gray-400">Enter UHID to find or register patient</p>
               </div>
             </div>
@@ -95,7 +95,7 @@ function TokenDesk() {
               </div>
             )}
 
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               {/* UHID */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -116,30 +116,30 @@ function TokenDesk() {
 
               {/* Patient Found */}
               {patient && (
-                <div className="flex items-center space-x-4 bg-gradient-to-r from-emerald-50 to-teal-50
-                  border border-emerald-200 rounded-xl p-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500
+                <div className="flex items-center space-x-3 sm:space-x-4 bg-gradient-to-r from-emerald-50 to-teal-50
+                  border border-emerald-200 rounded-xl p-3 sm:p-4">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500
                     flex items-center justify-center shadow-sm flex-shrink-0">
                     <User size={18} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-emerald-800">{patient.name}</p>
-                    <p className="text-xs text-emerald-600 mt-0.5">
+                    <p className="font-bold text-emerald-800 text-sm sm:text-base truncate">{patient.name}</p>
+                    <p className="text-xs text-emerald-600 mt-0.5 truncate">
                       {patient.age} yrs &bull; {patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : 'Other'} &bull; {patient.phone}
                     </p>
                   </div>
-                  <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" />
+                  <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
                 </div>
               )}
 
               {/* New Registration */}
               {showReg && (
-                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5">
-                  <div className="flex items-center space-x-2 mb-4">
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 sm:p-5">
+                  <div className="flex items-center space-x-2 mb-3 sm:mb-4">
                     <UserPlus size={16} className="text-orange-600" />
                     <h3 className="font-bold text-orange-800 text-sm">Register New Patient</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <InputField placeholder="Full Name" value={regData.name}
                       onChange={e => setRegData({...regData, name: e.target.value})} />
                     <InputField placeholder="Age" type="number" value={regData.age}
@@ -191,7 +191,7 @@ function TokenDesk() {
               <button
                 onClick={handleGenerate}
                 disabled={!patient || !selectedDoctor || loading}
-                className="w-full py-4 rounded-xl font-bold text-white text-sm shadow-lg
+                className="w-full py-3.5 sm:py-4 rounded-xl font-bold text-white text-sm shadow-lg
                   transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{background: (!patient || !selectedDoctor || loading)
                   ? '#e5e7eb'
@@ -203,33 +203,33 @@ function TokenDesk() {
         </div>
 
         {/* ── RIGHT: Token Card ── */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {generatedToken ? (
             <div className="rounded-2xl overflow-hidden shadow-xl"
               style={{background:'linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95)'}}>
               <div className="absolute inset-0 opacity-10 rounded-2xl"
                 style={{backgroundImage:'radial-gradient(circle at 60% 10%,#a5b4fc,transparent 60%)'}} />
-              <div className="p-8 text-center relative">
-                <p className="text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-4">Token Issued</p>
-                <div className="text-8xl font-black text-white token-glow tabular-nums leading-none mb-4">
+              <div className="p-6 sm:p-8 text-center relative">
+                <p className="text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-3 sm:mb-4">Token Issued</p>
+                <div className="text-6xl sm:text-8xl font-black text-white token-glow tabular-nums leading-none mb-3 sm:mb-4">
                   {generatedToken.token_number}
                 </div>
-                <div className="w-16 h-0.5 bg-indigo-500/40 mx-auto mb-4 rounded-full" />
-                <p className="text-white font-bold text-xl">{generatedToken.patient_name}</p>
-                <p className="text-indigo-300 text-sm mt-1">{generatedToken.doctor_name || selectedDoc?.name}</p>
-                <p className="text-indigo-400 text-xs mt-4">
+                <div className="w-16 h-0.5 bg-indigo-500/40 mx-auto mb-3 sm:mb-4 rounded-full" />
+                <p className="text-white font-bold text-lg sm:text-xl">{generatedToken.patient_name}</p>
+                <p className="text-indigo-300 text-xs sm:text-sm mt-1">{generatedToken.doctor_name || selectedDoc?.name}</p>
+                <p className="text-indigo-400 text-xs mt-3 sm:mt-4">
                   Issued at {new Date(generatedToken.issued_at).toLocaleTimeString()}
                 </p>
               </div>
-              <div className="bg-white/10 px-6 py-3 text-center">
+              <div className="bg-white/10 px-4 sm:px-6 py-2.5 sm:py-3 text-center">
                 <p className="text-indigo-200 text-xs">Please wait for your number to be called</p>
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center h-full flex items-center justify-center">
+            <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 p-6 sm:p-8 text-center h-full min-h-[160px] flex items-center justify-center">
               <div className="text-center space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
-                  <Ticket size={24} className="text-gray-400" />
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
+                  <Ticket size={20} className="text-gray-400" />
                 </div>
                 <p className="text-gray-500 text-sm font-medium">Token will appear here</p>
                 <p className="text-gray-400 text-xs">Enter UHID and select a doctor first</p>

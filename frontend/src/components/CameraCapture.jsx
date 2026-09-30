@@ -225,17 +225,17 @@ function CameraCapture({ onCapture }) {
               onClick={() => startCamera()}
               disabled={isStarting}
               type="button"
-              className="py-8 px-4 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40
-                hover:border-indigo-400 hover:bg-indigo-50 transition-all group flex flex-col items-center justify-center space-y-2.5"
+              className="py-6 sm:py-8 px-3 sm:px-4 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40
+                hover:border-indigo-400 hover:bg-indigo-50 transition-all group flex flex-col items-center justify-center space-y-2"
             >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 group-hover:bg-indigo-200 flex items-center justify-center transition-colors">
-                <Camera size={22} className="text-indigo-600" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-100 group-hover:bg-indigo-200 flex items-center justify-center transition-colors">
+                <Camera size={20} className="text-indigo-600" />
               </div>
               <div className="text-center">
                 <p className="text-xs font-bold text-indigo-900">
-                  {isStarting ? 'Accessing Camera...' : 'Start Camera'}
+                  {isStarting ? 'Accessing...' : 'Start Camera'}
                 </p>
-                <p className="text-[11px] text-indigo-600/80 mt-0.5">Use device webcam</p>
+                <p className="text-[10px] sm:text-[11px] text-indigo-600/80 mt-0.5">Live camera feed</p>
               </div>
             </button>
 
@@ -243,15 +243,15 @@ function CameraCapture({ onCapture }) {
             <button
               onClick={() => fileInputRef.current?.click()}
               type="button"
-              className="py-8 px-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50
-                hover:border-gray-400 hover:bg-gray-100/70 transition-all group flex flex-col items-center justify-center space-y-2.5"
+              className="py-6 sm:py-8 px-3 sm:px-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50
+                hover:border-gray-400 hover:bg-gray-100/70 transition-all group flex flex-col items-center justify-center space-y-2"
             >
-              <div className="w-12 h-12 rounded-2xl bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center transition-colors">
-                <Upload size={22} className="text-gray-700" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center transition-colors">
+                <Upload size={20} className="text-gray-700" />
               </div>
               <div className="text-center">
                 <p className="text-xs font-bold text-gray-800">Upload Photo</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">Select image from PC</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5">Choose file or slip</p>
               </div>
             </button>
           </div>
