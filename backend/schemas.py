@@ -115,3 +115,28 @@ class DoctorWorkload(BaseModel):
     called_count: int
     done_count: int
     total_today: int
+
+class AutoBalanceRequest(BaseModel):
+    from_doctor_id: int
+    token_ids: Optional[List[int]] = None
+    same_department_only: bool = True
+    target_doctor_ids: Optional[List[int]] = None
+    dry_run: bool = False
+
+class AutoBalanceDistributionItem(BaseModel):
+    doctor_id: int
+    doctor_name: str
+    department: str
+    previous_load: int
+    assigned_count: int
+    new_load: int
+    transferred_token_numbers: List[int]
+
+class AutoBalanceResponse(BaseModel):
+    from_doctor_name: str
+    from_doctor_department: str
+    total_transferred: int
+    distribution: List[AutoBalanceDistributionItem]
+    message: str
+    dry_run: bool = False
+

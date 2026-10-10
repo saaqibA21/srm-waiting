@@ -4,16 +4,21 @@ from models import Doctor
 def seed_doctors():
     db = SessionLocal()
     try:
-        if db.query(Doctor).count() == 0:
-            doctors = [
-                Doctor(doctor_number='DR-001', name='Dr. Ananya Sharma', department='General Medicine'),
-                Doctor(doctor_number='DR-002', name='Dr. Rajesh Kumar', department='Cardiology'),
-                Doctor(doctor_number='DR-003', name='Dr. Priya Mehta', department='Pediatrics'),
-                Doctor(doctor_number='DR-004', name='Dr. Suresh Patel', department='Orthopedics'),
-                Doctor(doctor_number='DR-005', name='Dr. Lakshmi Nair', department='Gynecology'),
-            ]
-            db.add_all(doctors)
-            db.commit()
+        doctors_data = [
+            {'doctor_number': 'DR-001', 'name': 'Dr. Ananya Sharma', 'department': 'General Medicine'},
+            {'doctor_number': 'DR-002', 'name': 'Dr. Rajesh Kumar', 'department': 'Cardiology'},
+            {'doctor_number': 'DR-003', 'name': 'Dr. Priya Mehta', 'department': 'Pediatrics'},
+            {'doctor_number': 'DR-004', 'name': 'Dr. Suresh Patel', 'department': 'Orthopedics'},
+            {'doctor_number': 'DR-005', 'name': 'Dr. Lakshmi Nair', 'department': 'Gynecology'},
+            {'doctor_number': 'DR-006', 'name': 'Dr. Vikram Sen', 'department': 'General Medicine'},
+            {'doctor_number': 'DR-007', 'name': 'Dr. Kavita Reddy', 'department': 'General Medicine'},
+            {'doctor_number': 'DR-008', 'name': 'Dr. Amit Verma', 'department': 'Cardiology'},
+        ]
+        for d in doctors_data:
+            existing = db.query(Doctor).filter(Doctor.doctor_number == d['doctor_number']).first()
+            if not existing:
+                db.add(Doctor(**d))
+        db.commit()
     finally:
         db.close()
 

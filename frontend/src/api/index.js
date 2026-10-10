@@ -30,6 +30,7 @@ export const getApiStats = () => api.get('/api/stats');
 export const getPatientVitals = (uhid) => api.get(`/api/patients/${uhid}/vitals`);
 export const getTodayTokens = () => api.get('/api/tokens/today');
 export const transferDoctorPatients = (data) => api.post('/token/transfer', data);
+export const autoBalanceDoctorPatients = (data) => api.post('/token/auto-balance', data);
 export const reassignToken = (tokenId, doctorId) => api.post(`/token/${tokenId}/reassign`, { doctor_id: doctorId });
 export const getDoctorWorkload = () => api.get('/doctors/workload');
 

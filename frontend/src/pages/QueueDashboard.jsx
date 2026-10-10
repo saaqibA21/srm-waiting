@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getQueue, getApiStats, callNextToken, getDoctors, transferDoctorPatients, reassignToken, getDoctorWorkload, WS_BASE_URL } from '../api';
+import { getQueue, getApiStats, callNextToken, getDoctors, transferDoctorPatients, autoBalanceDoctorPatients, reassignToken, getDoctorWorkload, WS_BASE_URL } from '../api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import {
   Users, Clock, CheckCircle2, Activity, TrendingUp,
   ChevronRight, Zap, RefreshCw, ArrowRightLeft, UserX,
-  X, Stethoscope, AlertCircle, Check, Sparkles
+  X, Stethoscope, AlertCircle, Check, Sparkles, Scale,
+  SlidersHorizontal, CheckCheck
 } from 'lucide-react';
 
 const StatCard = ({ label, value, icon: Icon, gradient, sub }) => (
@@ -62,8 +63,12 @@ function QueueDashboard() {
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  // Doctor Handover / Shift Patients Modal State
+  // Doctor Handover / Smart Load Balancer Modal State
   const [showShiftModal, setShowShiftModal] = useState(false);
+  const [shiftMode, setShiftMode] = useState('auto'); // 'auto' | 'manual'
+  const [sameDepartmentOnly, setSameDepartmentOnly] = useState(true);
+  const [autoBalancePreview, setAutoBalancePreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [fromDoctorId, setFromDoctorId] = useState('');
   const [toDoctorId, setToDoctorId] = useState('');
   const [selectedTokenIds, setSelectedTokenIds] = useState([]);
@@ -103,6 +108,9 @@ function QueueDashboard() {
           if (data.event === 'patients_transferred') {
             setShiftBanner(`🔄 Shift Update: ${data.count} patient(s) transferred from ${data.from_doctor} to ${data.to_doctor}`);
             setTimeout(() => setShiftBanner(''), 6000);
+          } else if (data.event === 'patients_auto_balanced') {
+            setShiftBanner(`⚡ Smart Auto-Balance: ${data.total_transferred} patient(s) from ${data.from_doctor} redistributed fairly across active doctors!`);
+            setTimeout(() => setShiftBanner(''), 7000);
           }
         } catch {
           // ignore parse errors
@@ -126,8 +134,37 @@ function QueueDashboard() {
       setSelectedTokenIds(pendingForDoc.map(t => t.id));
     } else {
       setSelectedTokenIds([]);
+      setAutoBalancePreview(null);
     }
   }, [fromDoctorId, queue]);
+
+  // Real-time live auto-balance preview simulation
+  useEffect(() => {
+    if (showShiftModal && shiftMode === 'auto' && fromDoctorId && selectedTokenIds.length > 0) {
+      let isMounted = true;
+      setPreviewLoading(true);
+      autoBalanceDoctorPatients({
+        from_doctor_id: parseInt(fromDoctorId, 10),
+        same_department_only: sameDepartmentOnly,
+        token_ids: selectedTokenIds,
+        dry_run: true
+      }).then(res => {
+        if (isMounted) {
+          setAutoBalancePreview(res.data);
+          setPreviewLoading(false);
+        }
+      }).catch(err => {
+        if (isMounted) {
+          console.error("Auto balance simulation error", err);
+          setAutoBalancePreview(null);
+          setPreviewLoading(false);
+        }
+      });
+      return () => { isMounted = false; };
+    } else {
+      setAutoBalancePreview(null);
+    }
+  }, [showShiftModal, shiftMode, fromDoctorId, sameDepartmentOnly, selectedTokenIds]);
 
   const handleNext = async () => {
     setLoading(true);
@@ -136,7 +173,7 @@ function QueueDashboard() {
     setLoading(false);
   };
 
-  // Execute bulk/selective patient transfer
+  // Execute bulk/selective manual patient transfer
   const handleTransferSubmit = async (e) => {
     e.preventDefault();
     if (!fromDoctorId || !toDoctorId) return;
@@ -161,6 +198,33 @@ function QueueDashboard() {
     setShiftLoading(false);
   };
 
+  // Execute smart auto-balance across available doctors
+  const handleAutoBalanceSubmit = async (e) => {
+    e.preventDefault();
+    if (!fromDoctorId || selectedTokenIds.length === 0) return;
+    setShiftLoading(true);
+    try {
+      const res = await autoBalanceDoctorPatients({
+        from_doctor_id: parseInt(fromDoctorId, 10),
+        same_department_only: sameDepartmentOnly,
+        token_ids: selectedTokenIds,
+        dry_run: false
+      });
+      setShowShiftModal(false);
+      setShiftBanner(`⚡ ${res.data.message}`);
+      setFromDoctorId('');
+      setToDoctorId('');
+      setSelectedTokenIds([]);
+      setAutoBalancePreview(null);
+      fetchQueue();
+      setTimeout(() => setShiftBanner(''), 7000);
+    } catch (err) {
+      console.error(err);
+      alert('Smart Auto-Balance failed: ' + (err.response?.data?.detail || err.message));
+    }
+    setShiftLoading(false);
+  };
+
   // Row-level instant re-assignment
   const handleSingleReassign = async (tokenId, newDoctorId) => {
     if (!newDoctorId) return;
@@ -178,6 +242,12 @@ function QueueDashboard() {
   const doctorPendingTokens = fromDoctorId
     ? queue.filter(t => t.doctor_id === parseInt(fromDoctorId, 10) && (t.status === 'waiting' || t.status === 'called'))
     : [];
+
+  const selectedFromDoc = doctors.find(d => String(d.id) === String(fromDoctorId));
+  const sameDeptDoctors = selectedFromDoc
+    ? doctors.filter(d => d.department === selectedFromDoc.department && String(d.id) !== String(fromDoctorId))
+    : [];
+
 
   const chartData = queue
     .reduce((acc, t) => {
@@ -221,15 +291,15 @@ function QueueDashboard() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          {/* Doctor Shift Patients Button */}
+          {/* Smart Auto-Balance / Shift Patients Button */}
           <button
-            onClick={() => setShowShiftModal(true)}
+            onClick={() => { setShiftMode('auto'); setShowShiftModal(true); }}
             type="button"
             className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-xl font-bold text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100
               border border-indigo-200 transition-all active:scale-95 flex items-center justify-center space-x-1.5 shadow-sm"
           >
-            <ArrowRightLeft size={14} />
-            <span className="truncate">Shift Patients</span>
+            <Zap size={14} className="text-indigo-600" />
+            <span className="truncate">Smart Auto-Balance</span>
           </button>
 
           {/* Call Next Button */}
@@ -467,7 +537,7 @@ function QueueDashboard() {
         </div>
       </div>
 
-      {/* ── MODAL: DOCTOR LEAVING MIDWAY / SHIFT PATIENTS ── */}
+      {/* ── MODAL: DOCTOR LEAVING MIDWAY / SMART OPD LOAD-BALANCER ── */}
       {showShiftModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-scaleUp">
@@ -484,18 +554,60 @@ function QueueDashboard() {
                 <X size={16} />
               </button>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <UserX size={20} className="text-amber-300" />
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  {shiftMode === 'auto' ? (
+                    <Zap size={20} className="text-amber-300" />
+                  ) : (
+                    <UserX size={20} className="text-amber-300" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold">Doctor Leaving Midway</h3>
-                  <p className="text-indigo-200 text-xs mt-0.5">Shift pending patients to another doctor</p>
+                  <h3 className="text-base sm:text-lg font-bold">
+                    {shiftMode === 'auto' ? 'Smart OPD Load-Balancer' : 'Doctor Leaving Midway'}
+                  </h3>
+                  <p className="text-indigo-200 text-xs mt-0.5">
+                    {shiftMode === 'auto'
+                      ? 'Distribute patients evenly across available doctors by queue length'
+                      : 'Handover patients directly to a designated doctor'}
+                  </p>
                 </div>
+              </div>
+
+              {/* Mode Switcher Tabs */}
+              <div className="mt-4 flex bg-white/10 p-1 rounded-xl backdrop-blur-xs">
+                <button
+                  type="button"
+                  onClick={() => setShiftMode('auto')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                    shiftMode === 'auto'
+                      ? 'bg-white text-indigo-950 shadow-sm'
+                      : 'text-indigo-200 hover:text-white'
+                  }`}
+                >
+                  <Zap size={13} className={shiftMode === 'auto' ? 'text-indigo-600' : ''} />
+                  <span>Auto-Balance</span>
+                  <span className="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded-full font-bold ml-1">Smart</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftMode('manual')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                    shiftMode === 'manual'
+                      ? 'bg-white text-indigo-950 shadow-sm'
+                      : 'text-indigo-200 hover:text-white'
+                  }`}
+                >
+                  <ArrowRightLeft size={13} />
+                  <span>Single Doctor</span>
+                </button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleTransferSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+            <form
+              onSubmit={shiftMode === 'auto' ? handleAutoBalanceSubmit : handleTransferSubmit}
+              className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1"
+            >
               
               {/* Step 1: Departing Doctor */}
               <div>
@@ -519,6 +631,16 @@ function QueueDashboard() {
                     );
                   })}
                 </select>
+
+                {selectedFromDoc && (
+                  <div className="mt-2 flex items-center space-x-2 text-xs text-gray-500">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold">
+                      Dept: {selectedFromDoc.department}
+                    </span>
+                    <span>&bull;</span>
+                    <span>{sameDeptDoctors.length} other doctor(s) in this department</span>
+                  </div>
+                )}
               </div>
 
               {/* Show list of pending patients for this doctor */}
@@ -526,7 +648,7 @@ function QueueDashboard() {
                 <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-amber-900">
-                      Pending Patients to Shift ({doctorPendingTokens.length}):
+                      Pending Patients to Reassign ({doctorPendingTokens.length}):
                     </span>
                     <button
                       type="button"
@@ -544,7 +666,7 @@ function QueueDashboard() {
                   </div>
 
                   {doctorPendingTokens.length > 0 ? (
-                    <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 no-scrollbar">
                       {doctorPendingTokens.map(t => {
                         const isSelected = selectedTokenIds.includes(t.id);
                         return (
@@ -586,57 +708,181 @@ function QueueDashboard() {
                 </div>
               )}
 
-              {/* Step 2: Receiving Doctor */}
-              <div>
-                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
-                  2. Transfer Patients To (New Doctor)
-                </label>
-                <select
-                  required
-                  value={toDoctorId}
-                  onChange={(e) => setToDoctorId(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  <option value="">Select receiving doctor...</option>
-                  {doctors
-                    .filter(d => String(d.id) !== String(fromDoctorId))
-                    .map(d => {
-                      const wl = workloads.find(w => w.id === d.id);
-                      const pending = wl ? (wl.waiting_count + wl.called_count) : queue.filter(t => t.doctor_id === d.id && t.status !== 'done').length;
-                      return (
-                        <option key={d.id} value={d.id}>
-                          {d.name} — {d.department} ({pending} current load)
-                        </option>
-                      );
-                    })}
-                </select>
-              </div>
+              {/* ── AUTO-BALANCE MODE CONFIG & LIVE PREVIEW ── */}
+              {shiftMode === 'auto' ? (
+                <>
+                  {/* Department Filtering Toggle */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2">
+                    <label className="flex items-start space-x-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sameDepartmentOnly}
+                        onChange={(e) => setSameDepartmentOnly(e.target.checked)}
+                        className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-400"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">
+                          Auto-Balance within same department only
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          {selectedFromDoc
+                            ? `Distribute only across available doctors in "${selectedFromDoc.department}".`
+                            : 'Distribute across available doctors in the same medical department.'}
+                        </p>
+                      </div>
+                    </label>
 
-              {/* Submit Button */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={shiftLoading || !fromDoctorId || !toDoctorId || selectedTokenIds.length === 0}
-                  className="w-full py-4 rounded-xl font-bold text-white text-sm shadow-lg
-                    transition-all active:scale-95 flex items-center justify-center space-x-2
-                    disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}
-                >
-                  {shiftLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      <span>Shifting Patients in Real-Time...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRightLeft size={16} />
-                      <span>
-                        Shift {selectedTokenIds.length} Patient{selectedTokenIds.length !== 1 ? 's' : ''} Immediately
-                      </span>
-                    </>
+                    {selectedFromDoc && sameDepartmentOnly && sameDeptDoctors.length === 0 && (
+                      <div className="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 p-2.5 rounded-xl flex items-center space-x-1.5 mt-2">
+                        <AlertCircle size={14} className="flex-shrink-0 text-amber-600" />
+                        <span>
+                          Notice: No other doctor in <strong>{selectedFromDoc.department}</strong>. Will automatically balance across all active OPD doctors.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Real-Time Live Allocation Simulation Card */}
+                  {selectedTokenIds.length > 0 && (
+                    <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5 text-xs font-bold text-indigo-950">
+                          <Scale size={14} className="text-indigo-600" />
+                          <span>Smart Queue Allocation Preview:</span>
+                        </div>
+                        {previewLoading ? (
+                          <span className="text-[10px] text-indigo-500 font-medium animate-pulse">Calculating...</span>
+                        ) : autoBalancePreview ? (
+                          <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-100">
+                            {selectedTokenIds.length} patients &bull; {autoBalancePreview.distribution.filter(d => d.assigned_count > 0).length} receiving doctor(s)
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {autoBalancePreview && autoBalancePreview.distribution.length > 0 ? (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                          {autoBalancePreview.distribution.map(item => (
+                            <div key={item.doctor_id} className="bg-white rounded-xl p-3 border border-indigo-100 shadow-xs flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-bold text-gray-900">{item.doctor_name}</p>
+                                <p className="text-[10px] text-gray-500">{item.department} &bull; Initial Queue: {item.previous_load}</p>
+                                {item.transferred_token_numbers.length > 0 && (
+                                  <div className="flex items-center space-x-1 mt-1">
+                                    <span className="text-[10px] text-gray-400 font-mono">Tokens:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {item.transferred_token_numbers.map(num => (
+                                        <span key={num} className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded">
+                                          #{num}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right flex-shrink-0 ml-3">
+                                <span className={`inline-block text-xs font-black px-2 py-0.5 rounded-lg border ${
+                                  item.assigned_count > 0
+                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                    : 'text-gray-500 bg-gray-50 border-gray-200'
+                                }`}>
+                                  +{item.assigned_count} patients
+                                </span>
+                                <p className="text-[10px] font-semibold text-gray-500 mt-0.5">
+                                  New load: <strong className="text-gray-900">{item.new_load}</strong>
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : !previewLoading ? (
+                        <p className="text-xs text-gray-500 italic">Select doctor and patients to simulate distribution.</p>
+                      ) : null}
+                    </div>
                   )}
-                </button>
-              </div>
+
+                  {/* Auto-Balance Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={shiftLoading || !fromDoctorId || selectedTokenIds.length === 0}
+                      className="w-full py-4 rounded-xl font-bold text-white text-sm shadow-lg
+                        transition-all active:scale-95 flex items-center justify-center space-x-2
+                        disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+                    >
+                      {shiftLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          <span>Balancing Patients Across Doctors...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={16} />
+                          <span>
+                            Execute Smart Auto-Balance ({selectedTokenIds.length} Patient{selectedTokenIds.length !== 1 ? 's' : ''})
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* ── MANUAL HANDOVER MODE ── */
+                <>
+                  {/* Step 2: Receiving Doctor */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                      2. Transfer Patients To (New Doctor)
+                    </label>
+                    <select
+                      required
+                      value={toDoctorId}
+                      onChange={(e) => setToDoctorId(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-indigo-400"
+                    >
+                      <option value="">Select receiving doctor...</option>
+                      {doctors
+                        .filter(d => String(d.id) !== String(fromDoctorId))
+                        .map(d => {
+                          const wl = workloads.find(w => w.id === d.id);
+                          const pending = wl ? (wl.waiting_count + wl.called_count) : queue.filter(t => t.doctor_id === d.id && t.status !== 'done').length;
+                          return (
+                            <option key={d.id} value={d.id}>
+                              {d.name} — {d.department} ({pending} current load)
+                            </option>
+                          );
+                        })}
+                    </select>
+                  </div>
+
+                  {/* Manual Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={shiftLoading || !fromDoctorId || !toDoctorId || selectedTokenIds.length === 0}
+                      className="w-full py-4 rounded-xl font-bold text-white text-sm shadow-lg
+                        transition-all active:scale-95 flex items-center justify-center space-x-2
+                        disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}
+                    >
+                      {shiftLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          <span>Shifting Patients in Real-Time...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRightLeft size={16} />
+                          <span>
+                            Shift {selectedTokenIds.length} Patient{selectedTokenIds.length !== 1 ? 's' : ''} Immediately
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+
             </form>
           </div>
         </div>

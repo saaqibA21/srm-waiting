@@ -199,3 +199,109 @@ async def reassign_single_token(token_id: int, req: schemas.TokenReassignRequest
     })
     
     return out
+
+@router.post("/auto-balance", response_model=schemas.AutoBalanceResponse)
+async def auto_balance_patients(req: schemas.AutoBalanceRequest, db: Session = Depends(get_db)):
+    from_doc = db.query(models.Doctor).filter(models.Doctor.id == req.from_doctor_id).first()
+    if not from_doc:
+        raise HTTPException(status_code=404, detail="Origin doctor not found")
+        
+    today = date.today()
+    query = db.query(models.Token).filter(
+        models.Token.date == today,
+        models.Token.doctor_id == req.from_doctor_id,
+        models.Token.status.in_(["waiting", "called"])
+    ).order_by(models.Token.token_number)
+    
+    if req.token_ids and len(req.token_ids) > 0:
+        query = query.filter(models.Token.id.in_(req.token_ids))
+        
+    tokens_to_transfer = query.all()
+    if not tokens_to_transfer:
+        return schemas.AutoBalanceResponse(
+            from_doctor_name=from_doc.name,
+            from_doctor_department=from_doc.department,
+            total_transferred=0,
+            distribution=[],
+            message="No pending patients found to balance for this doctor.",
+            dry_run=req.dry_run
+        )
+        
+    # Find candidate doctors
+    target_query = db.query(models.Doctor).filter(models.Doctor.id != req.from_doctor_id)
+    if req.target_doctor_ids and len(req.target_doctor_ids) > 0:
+        target_doctors = target_query.filter(models.Doctor.id.in_(req.target_doctor_ids)).all()
+    elif req.same_department_only:
+        dept_doctors = target_query.filter(models.Doctor.department == from_doc.department).all()
+        target_doctors = dept_doctors if dept_doctors else target_query.all()
+    else:
+        target_doctors = target_query.all()
+        
+    if not target_doctors:
+        raise HTTPException(status_code=400, detail="No other available doctors found to receive patients.")
+        
+    # Calculate initial workload for each target doctor
+    doctor_workloads = {}
+    for doc in target_doctors:
+        current_pending = db.query(models.Token).filter(
+            models.Token.date == today,
+            models.Token.doctor_id == doc.id,
+            models.Token.status.in_(["waiting", "called"])
+        ).count()
+        doctor_workloads[doc.id] = {
+            "doctor": doc,
+            "initial_load": current_pending,
+            "current_load": current_pending,
+            "assigned_tokens": []
+        }
+        
+    # Fairly distribute each token to the target doctor with minimal current workload
+    for token in tokens_to_transfer:
+        min_doc_id = min(doctor_workloads.keys(), key=lambda d_id: (doctor_workloads[d_id]["current_load"], d_id))
+        doctor_workloads[min_doc_id]["assigned_tokens"].append(token)
+        doctor_workloads[min_doc_id]["current_load"] += 1
+        if not req.dry_run:
+            token.doctor_id = min_doc_id
+            
+    if not req.dry_run:
+        db.commit()
+        dist_summary = [
+            {
+                "doctor_id": d_id,
+                "doctor_name": data["doctor"].name,
+                "tokens": [t.token_number for t in data["assigned_tokens"]]
+            }
+            for d_id, data in doctor_workloads.items() if data["assigned_tokens"]
+        ]
+        await manager.broadcast_json({
+            "event": "patients_auto_balanced",
+            "from_doctor": from_doc.name,
+            "total_transferred": len(tokens_to_transfer),
+            "distribution": dist_summary
+        })
+        
+    distribution_list = [
+        schemas.AutoBalanceDistributionItem(
+            doctor_id=data["doctor"].id,
+            doctor_name=data["doctor"].name,
+            department=data["doctor"].department,
+            previous_load=data["initial_load"],
+            assigned_count=len(data["assigned_tokens"]),
+            new_load=data["current_load"],
+            transferred_token_numbers=[t.token_number for t in data["assigned_tokens"]]
+        )
+        for d_id, data in doctor_workloads.items()
+        if len(data["assigned_tokens"]) > 0 or not req.same_department_only
+    ]
+    distribution_list.sort(key=lambda x: -x.assigned_count)
+    
+    action_word = "Simulated distribution of" if req.dry_run else "Successfully auto-balanced"
+    return schemas.AutoBalanceResponse(
+        from_doctor_name=from_doc.name,
+        from_doctor_department=from_doc.department,
+        total_transferred=len(tokens_to_transfer),
+        distribution=distribution_list,
+        message=f"{action_word} {len(tokens_to_transfer)} patients from {from_doc.name} across {len([d for d in distribution_list if d.assigned_count > 0])} doctors based on real-time queue workloads.",
+        dry_run=req.dry_run
+    )
+
