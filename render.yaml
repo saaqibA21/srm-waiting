@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: srm-hospital-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    autoDeploy: true
